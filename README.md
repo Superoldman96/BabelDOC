@@ -39,6 +39,14 @@ PDF scientific paper translation and bilingual comparison library.
 - Provides a [Python API](#python-api).
 - Mainly designed to be embedded into other programs, but can also be used directly for simple translation tasks.
 
+> [!TIP]
+>
+> How to use BabelDOC in Zotero
+>
+> 1. Immersive Translate Pro members can use the [immersive-translate/zotero-immersivetranslate](https://github.com/immersive-translate/zotero-immersivetranslate) plugin
+>
+> 2. PDFMathTranslate self-deployed users can use the [guaguastandup/zotero-pdf2zh](https://github.com/guaguastandup/zotero-pdf2zh) plugin
+
 [Supported Language](https://funstory-ai.github.io/BabelDOC/supported_languages/)
 
 ## Preview
@@ -148,6 +156,7 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 - `--translate-table-text`: Translate table text (experimental, default: False)
 - `--skip-scanned-detection`: Skip scanned document detection (default: False). When using split translation, only the first part performs detection if not skipped.
 - `--ocr-workaround`: Use OCR workaround (default: False). When enabled, the tool will use OCR to detect text and fill background for scanned PDF.
+- `--working-dir`: Working directory for translation. If not set, use temp directory.
 
 > [!TIP]
 > - Both `--skip-clean` and `--dual-translate-first` may help improve compatibility with some PDF readers
@@ -166,6 +175,8 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 - `--no-mono`: Do not output monolingual PDF files
 - `--min-text-length`: Minimum text length to translate (default: 5)
 - `--openai`: Use OpenAI for translation (default: False)
+- `--custom-system-prompt`: Custom system prompt for translation.
+- `--add-formula-placehold-hint`: Add formula placeholder hint for translation. (Currently not recommended, it may affect translation quality, default: False)
 
 > [!TIP]
 >
@@ -173,6 +184,7 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 > 2. It is recommended to use models with strong compatibility with OpenAI, such as: `glm-4-flash`, `deepseek-chat`, etc.
 > 3. Currently, it has not been optimized for traditional translation engines like Bing/Google, it is recommended to use LLMs.
 > 4. You can use [litellm](https://github.com/BerriAI/litellm) to access multiple models.
+> 5. `--custom-system-prompt`: It is mainly used to add the `/no_think` instruction of Qwen 3 in the prompt. For example: `--custom-system-prompt "/no_think You are a professional, authentic machine translation engine."`
 
 ### OpenAI Specific Options
 
