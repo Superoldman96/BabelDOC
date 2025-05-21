@@ -255,6 +255,7 @@ class OpenAITranslator(BaseTranslator):
         response = self.client.chat.completions.create(
             model=self.model,
             **self.options,
+            max_tokens=2048,
             messages=[
                 {
                     "role": "user",
@@ -277,11 +278,14 @@ class OpenAITranslator(BaseTranslator):
             logger.exception("Error updating token count")
 
     def get_formular_placeholder(self, placeholder_id: int):
-        return "{{v" + str(placeholder_id) + "}}"
+        return "{v" + str(placeholder_id) + "}", f"{{\\s*v\\s*{placeholder_id}\\s*}}"
         return "{{" + str(placeholder_id) + "}}"
 
     def get_rich_text_left_placeholder(self, placeholder_id: int):
-        return f"<style id='{placeholder_id}'>"
+        return (
+            f"<style id='{placeholder_id}'>",
+            f"<\\s*style\\s*id\\s*=\\s*'\\s*{placeholder_id}\\s*'\\s*>",
+        )
 
     def get_rich_text_right_placeholder(self, placeholder_id: int):
-        return "</style>"
+        return "</style>", r"<\s*\/\s*style\s*>"
