@@ -19,11 +19,12 @@ from babeldoc.document_il.translator.translator import set_translate_rate_limite
 from babeldoc.docvision.doclayout import DocLayoutModel
 from babeldoc.docvision.rpc_doclayout import RpcDocLayoutModel
 from babeldoc.docvision.table_detection.rapidocr import RapidOCRModel
+from babeldoc.glossary import Glossary
 from babeldoc.translation_config import TranslationConfig
 from babeldoc.translation_config import WatermarkOutputMode
 
 logger = logging.getLogger(__name__)
-__version__ = "0.3.37"
+__version__ = "0.3.56"
 
 
 def create_parser():
@@ -69,6 +70,11 @@ def create_parser():
         "--restore-offline-assets",
         default=None,
         help="Restore offline assets package from the specified file",
+    )
+    parser.add_argument(
+        "--working-dir",
+        default=None,
+        help="Working directory for translation. If not set, use temp directory.",
     )
     # translation option argument group
     translation_group = parser.add_argument_group(
@@ -216,6 +222,35 @@ def create_parser():
         default=False,
         help="Add text fill background (experimental)",
     )
+    translation_group.add_argument(
+        "--custom-system-prompt",
+        help="Custom system prompt for translation.",
+        default=None,
+    )
+    translation_group.add_argument(
+        "--add-formula-placehold-hint",
+        action="store_true",
+        default=False,
+        help="Add formula placeholder hint for translation. (Currently not recommended, it may affect translation quality, default: False)",
+    )
+    translation_group.add_argument(
+        "--glossary-files",
+        type=str,
+        default=None,
+        help="Comma-separated paths to glossary CSV files.",
+    )
+    translation_group.add_argument(
+        "--pool-max-workers",
+        type=int,
+        help="Maximum number of worker threads for internal task processing pools. If not specified, defaults to QPS value. This parameter directly sets the worker count, replacing previous QPS-based dynamic calculations.",
+    )
+    translation_group.add_argument(
+        "--no-auto-extract-glossary",
+        action="store_false",
+        dest="auto_extract_glossary",
+        default=True,
+        help="Disable automatic term extraction. (Config file: set auto_extract_glossary = false)",
+    )
     # service option argument group
     service_group = translation_group.add_mutually_exclusive_group()
     service_group.add_argument(
@@ -306,6 +341,32 @@ async def main():
     else:
         table_model = None
 
+    # Load glossaries
+    loaded_glossaries: list[Glossary] = []
+    if args.glossary_files:
+        paths_str = args.glossary_files.split(",")
+        for p_str in paths_str:
+            file_path = Path(p_str.strip())
+            if not file_path.exists():
+                logger.error(f"Glossary file not found: {file_path}")
+                continue
+            if not file_path.is_file():
+                logger.error(f"Glossary path is not a file: {file_path}")
+                continue
+            try:
+                glossary_obj = Glossary.from_csv(file_path, args.lang_out)
+                if glossary_obj.entries:
+                    loaded_glossaries.append(glossary_obj)
+                    logger.info(
+                        f"Loaded glossary '{glossary_obj.name}' with {len(glossary_obj.entries)} entries."
+                    )
+                else:
+                    logger.info(
+                        f"Glossary '{file_path.stem}' loaded with no applicable entries for lang_out '{args.lang_out}'."
+                    )
+            except Exception as e:
+                logger.error(f"Failed to load glossary from {file_path}: {e}")
+
     pending_files = []
     for file in args.files:
         # 清理文件路径，去除两端的引号
@@ -315,7 +376,7 @@ async def main():
         if not Path(file).exists():
             logger.error(f"文件不存在：{file}")
             exit(1)
-        if not file.endswith(".pdf"):
+        if not file.lower().endswith(".pdf"):
             logger.error(f"文件不是 PDF 文件：{file}")
             exit(1)
         pending_files.append(file)
@@ -333,6 +394,21 @@ async def main():
                 exit(1)
     else:
         args.output = None
+
+    if args.working_dir:
+        working_dir = Path(args.working_dir)
+        if not working_dir.exists():
+            logger.info(f"工作目录不存在，创建：{working_dir}")
+            try:
+                working_dir.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                logger.critical(
+                    f"Failed to create working directory at {working_dir}",
+                    exc_info=True,
+                )
+                exit(1)
+    else:
+        working_dir = None
 
     watermark_output_mode = WatermarkOutputMode.Watermarked
     if args.no_watermark:
@@ -384,6 +460,12 @@ async def main():
             show_char_box=args.show_char_box,
             skip_scanned_detection=args.skip_scanned_detection,
             ocr_workaround=args.ocr_workaround,
+            custom_system_prompt=args.custom_system_prompt,
+            working_dir=working_dir,
+            add_formula_placehold_hint=args.add_formula_placehold_hint,
+            glossaries=loaded_glossaries,
+            pool_max_workers=args.pool_max_workers,
+            auto_extract_glossary=args.auto_extract_glossary,
         )
 
         # Create progress handler

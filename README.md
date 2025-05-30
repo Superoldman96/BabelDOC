@@ -39,6 +39,14 @@ PDF scientific paper translation and bilingual comparison library.
 - Provides a [Python API](#python-api).
 - Mainly designed to be embedded into other programs, but can also be used directly for simple translation tasks.
 
+> [!TIP]
+>
+> How to use BabelDOC in Zotero
+>
+> 1. Immersive Translate Pro members can use the [immersive-translate/zotero-immersivetranslate](https://github.com/immersive-translate/zotero-immersivetranslate) plugin
+>
+> 2. PDFMathTranslate self-deployed users can use the [guaguastandup/zotero-pdf2zh](https://github.com/guaguastandup/zotero-pdf2zh) plugin
+
 [Supported Language](https://funstory-ai.github.io/BabelDOC/supported_languages/)
 
 ## Preview
@@ -70,10 +78,10 @@ babeldoc --help
 3. Use the `babeldoc` command. For example:
 
 ```bash
-babeldoc --bing  --files example.pdf
+babeldoc --openai --openai-model "gpt-4o-mini" --openai-base-url "https://api.openai.com/v1" --openai-api-key "your-api-key-here"  --files example.pdf
 
 # multiple files
-babeldoc --bing  --files example1.pdf --files example2.pdf
+babeldoc --openai --openai-model "gpt-4o-mini" --openai-base-url "https://api.openai.com/v1" --openai-api-key "your-api-key-here"  --files example1.pdf --files example2.pdf
 ```
 
 ### Install from Source
@@ -148,6 +156,8 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 - `--translate-table-text`: Translate table text (experimental, default: False)
 - `--skip-scanned-detection`: Skip scanned document detection (default: False). When using split translation, only the first part performs detection if not skipped.
 - `--ocr-workaround`: Use OCR workaround (default: False). When enabled, the tool will use OCR to detect text and fill background for scanned PDF.
+- `--working-dir`: Working directory for translation. If not set, use temp directory.
+- `--no-auto-extract-glossary`: Disable automatic term extraction. If this flag is present, the step is skipped. Defaults to enabled.
 
 > [!TIP]
 > - Both `--skip-clean` and `--dual-translate-first` may help improve compatibility with some PDF readers
@@ -166,6 +176,10 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 - `--no-mono`: Do not output monolingual PDF files
 - `--min-text-length`: Minimum text length to translate (default: 5)
 - `--openai`: Use OpenAI for translation (default: False)
+- `--custom-system-prompt`: Custom system prompt for translation.
+- `--add-formula-placehold-hint`: Add formula placeholder hint for translation. (Currently not recommended, it may affect translation quality, default: False)
+- `--pool-max-workers`: Maximum number of worker threads for internal task processing pools. If not specified, defaults to QPS value. This parameter directly sets the worker count, replacing previous QPS-based dynamic calculations.
+- `--no-auto-extract-glossary`: Disable automatic term extraction. If this flag is present, the step is skipped. Defaults to enabled.
 
 > [!TIP]
 >
@@ -173,6 +187,7 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 > 2. It is recommended to use models with strong compatibility with OpenAI, such as: `glm-4-flash`, `deepseek-chat`, etc.
 > 3. Currently, it has not been optimized for traditional translation engines like Bing/Google, it is recommended to use LLMs.
 > 4. You can use [litellm](https://github.com/BerriAI/litellm) to access multiple models.
+> 5. `--custom-system-prompt`: It is mainly used to add the `/no_think` instruction of Qwen 3 in the prompt. For example: `--custom-system-prompt "/no_think You are a professional, authentic machine translation engine."`
 
 ### OpenAI Specific Options
 
@@ -184,6 +199,18 @@ uv run babeldoc --files example.pdf --files example2.pdf --openai --openai-model
 >
 > 1. This tool supports any OpenAI-compatible API endpoints. Just set the correct base URL and API key. (e.g. `https://xxx.custom.xxx/v1`)
 > 2. For local models like Ollama, you can use any value as the API key (e.g. `--openai-api-key a`).
+
+### Glossary Options
+
+- `--glossary-files`: Comma-separated paths to glossary CSV files.
+  - Each CSV file should have the columns: `source`, `target`, and an optional `tgt_lng`.
+  - The `source` column contains the term in the original language.
+  - The `target` column contains the term in the target language.
+  - The `tgt_lng` column (optional) specifies the target language for that specific entry (e.g., "zh-CN", "en-US").
+    - If `tgt_lng` is provided for an entry, that entry will only be loaded and used if its (normalized) `tgt_lng` matches the (normalized) overall target language specified by `--lang-out`. Normalization involves lowercasing and replacing hyphens (`-`) with underscores (`_`).
+    - If `tgt_lng` is omitted for an entry, that entry is considered applicable for any `--lang-out`.
+  - The name of each glossary (used in LLM prompts) is derived from its filename (without the .csv extension).
+  - During translation, the system will check the input text against the loaded glossaries. If terms from a glossary are found in the current text segment, that glossary (with the relevant terms) will be included in the prompt to the language model, along with an instruction to adhere to it.
 
 ### Output Control
 
@@ -233,12 +260,17 @@ watermark-output-mode = "watermarked"  # Choices: "watermarked", "no_watermark",
 max-pages-per-part = 50  # Automatically split the document for translation and merge it back.
 # no-watermark = false  # DEPRECATED: Use watermark-output-mode instead
 skip-scanned-detection = false  # Skip scanned document detection for faster processing
+auto_extract_glossary = true # Set to false to disable automatic term extraction
 
 # Translation service
 openai = true
 openai-model = "gpt-4o-mini"
 openai-base-url = "https://api.openai.com/v1"
 openai-api-key = "your-api-key-here"
+pool-max-workers = 8  # Maximum worker threads for task processing (defaults to QPS value if not set)
+
+# Glossary Options (Optional)
+# glossary-files = "/path/to/glossary1.csv,/path/to/glossary2.csv"
 
 # Output control
 no-dual = false
