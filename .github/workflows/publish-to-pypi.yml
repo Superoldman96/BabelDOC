@@ -35,11 +35,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Setup uv with Python 3.12
-        uses: astral-sh/setup-uv@6b9c6063abd6010835644d4c2e1bef4cf5cd0fca # v6.0.1
+        uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb # v6.1.0
         with:
           python-version: "3.12"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+          activate-environment: true
 
       - name: Check if there is a parent commit
         id: check-parent-commit
@@ -61,8 +62,8 @@ jobs:
       - name: Bump version for developmental release
         if: "! steps.check-version.outputs.tag"
         run: |
-          version=$(bumpver update --patch --tag=final --dry 2>&1 | grep "New Version" | awk '{print $NF}') &&
-          bumpver update --set-version $version.dev$(date +%s)
+          version=$(uv run bumpver update --patch --tag=final --dry 2>&1 | grep "New Version" | awk '{print $NF}') &&
+          uv run bumpver update --set-version $version.dev$(date +%s)
 
       - name: Build package
         run: "uv build"
