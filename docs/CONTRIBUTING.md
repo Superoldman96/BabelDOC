@@ -28,6 +28,12 @@ Please pay special attention to:
 - This project is not intended for direct end-user use, and the supported translators are mainly for debugging purposes. Unless it clearly helps with development and debugging, PRs for directly adding translators will not be accepted.
 - You can directly use [PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate) to get support for more translators.
 
+### **If you want to add new accelerator support for the layout model**
+
+- This project only plans to support various accelerators through onnxruntime. Please submit your accelerator support directly to onnxruntime.
+
+- Additionally, [translation_config.py](https://github.com/funstory-ai/BabelDOC/blob/9e5be3a05c15ecae98024ba695e4a2db1412c062/babeldoc/translation_config.py#L41) shows that the layout model implementation actually used in this project is passed in from outside. You can implement a layout model class according to the relevant interface, and then pass it through this parameter at runtime.
+
 ### **If you wish to contribute to BabelDOC**
 
 > [!TIP]
@@ -40,7 +46,7 @@ Please pay special attention to:
 > 
 > Due to the current high rate of code changes, this project only accepts small PRs. If you would like to suggest a change and you include a patch as a proof-of-concept, that would be great. However, please do not be offended if we rewrite your patch from scratch.
 >
-> Please discuss with the maintainers in the [Issue](https://github.com/funstory-ai/BabelDOC/issues) before sending a PR.
+> **This project cannot accept all PRs. We recommend that you discuss with the maintainers via [Issue](https://github.com/funstory-ai/BabelDOC/issues) before submitting a PR.**
 
 [//]: # (> We welcome pull requests and will review your contributions.)
 
@@ -163,25 +169,25 @@ The existing codebase does not comply with the above specifications in some aspe
 
 #### How to modify the intermediate representation
 
-The intermediate representation is described by [il_version_1.rnc](https://github.com/funstory-ai/BabelDOC/blob/main/BabelDOC/document_il/il_version_1.rnc). Corresponding Python data classes are generated using [xsdata](https://xsdata.readthedocs.io/en/latest/). The files `il_version_1.rng`, `il_version_1.xsd`, and `il_version_1.py` are auto-generated and must not be manually modified.
+The intermediate representation is described by [il_version_1.rnc](https://github.com/funstory-ai/BabelDOC/blob/main/BabelDOC/format/pdf/document_il/il_version_1.rnc). Corresponding Python data classes are generated using [xsdata](https://xsdata.readthedocs.io/en/latest/). The files `il_version_1.rng`, `il_version_1.xsd`, and `il_version_1.py` are auto-generated and must not be manually modified.
 
 ##### Format RNC file
 
 ```bash
-trang babeldoc/document_il/il_version_1.rnc babeldoc/document_il/il_version_1.rnc
+trang babeldoc/format/pdf/document_il/il_version_1.rnc babeldoc/format/pdf/document_il/il_version_1.rnc
 ```
 
 ##### Generate RNG, XSD and Python classes
 
 ```bash
 # Generate RNG from RNC
-trang babeldoc/document_il/il_version_1.rnc babeldoc/document_il/il_version_1.rng
+trang babeldoc/format/pdf/document_il/il_version_1.rnc babeldoc/format/pdf/document_il/il_version_1.rng
 
 # Generate XSD from RNC
-trang babeldoc/document_il/il_version_1.rnc babeldoc/document_il/il_version_1.xsd
+trang babeldoc/format/pdf/document_il/il_version_1.rnc babeldoc/format/pdf/document_il/il_version_1.xsd
 
 # Generate Python classes from XSD
-xsdata generate babeldoc/document_il/il_version_1.xsd --package babeldoc.document_il
+xsdata generate babeldoc/format/pdf/document_il/il_version_1.xsd --package babeldoc.format.pdf.document_il
 ```
 
 ##### Profile memory usage
